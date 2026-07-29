@@ -17,9 +17,10 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
+# Import cloudscraper sebagai pengganti requests biasa
 import requests
+import cloudscraper
 from bs4 import BeautifulSoup
-
 
 ROOT = Path(__file__).parent
 SYSTEM = platform.system()
@@ -91,15 +92,18 @@ def user_claim(user):
     password = user.get('password')
     server = user.get('server')
 
-    session = requests.Session()
-    # Tambah User-Agent standar browser biar request gak diblokir server
-    session.headers.update({
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    })
+    # BUAT SESSION DENGAN CLOUDSCRAPER (Bypass Anti-Bot)
+    session = cloudscraper.create_scraper(
+        browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'desktop': True
+        }
+    )
     
     is_logged = login(session, username, password)
 
-    assert is_logged, 'Wrong Login Credential'
+    assert is_logged, 'Wrong Login Credential / Blocked by Cloudflare'
 
     html = session.get(EVENT_URL)
     sess_html = BeautifulSoup(
@@ -150,12 +154,10 @@ def check_claim(sess_html, is_claimed):
 
 
 def login(session, username, password):
-    # 1. Tambahkan header penyamaran penuh agar mirip browser asli
+    # Header penyamaran penuh agar mirip browser asli
     session.headers.update({
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://kageherostudio.com/payment/login.php',
         'Origin': 'https://kageherostudio.com',
-        'Content-Type': 'application/x-www-form-urlencoded'
     })
 
     data = {
@@ -164,27 +166,17 @@ def login(session, username, password):
         'txtfrom': '', 
     }
 
-    # 2. Pancing cookie awal
+    # Pancing cookie awal dari Cloudflare
     session.get('https://kageherostudio.com/payment/login.php')
 
-    # 3. Tembak login
-    res = session.post(LOGIN_URL, data=data, allow_redirects=True)
+    # Tembak login
+    session.post(LOGIN_URL, data=data, allow_redirects=True)
 
-    # 4. Cek hasil ke halaman event
+    # Cek hasil ke halaman event
     r_event = session.get(EVENT_URL)
 
     # Validasi ketat
     is_success = username.lower() in r_event.text.lower() or 'logout' in r_event.text.lower()
-
-    # --- BLOK DEBUGGING (SADAP SERVER) ---
-    if not is_success:
-        print(f"\n--- DEBUG LOG: GAGAL LOGIN ---")
-        print(f"Status Code Server : {res.status_code}")
-        print(f"URL Tujuan Akhir   : {res.url}")
-        # Cetak 300 huruf pertama dari jawaban server untuk melihat error aslinya
-        print(f"Jawaban Asli Server:\n{res.text[:300]}")
-        print(f"------------------------------\n")
-    # -------------------------------------
 
     return is_success
 
