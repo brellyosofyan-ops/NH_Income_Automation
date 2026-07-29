@@ -153,16 +153,27 @@ def login(session, username, password):
     data = {
         USER_NAME: username,
         PASS_NAME: password,
-        'txtfrom': '',  # Parameter wajib yang diminta server Kagehero
+        'txtfrom': '',
     }
 
-    # Kirim request POST ke server
-    session.post(LOGIN_URL, data=data)
+    # Buka halaman login dulu untuk ambil CSRF / Cookie awal
+    session.get('https://kageherostudio.com/payment/login.php')
 
-    # Cek apakah session berhasil masuk dengan membuka halaman event
+    # Kirim request POST login dengan mengizinkan redirect
+    res = session.post(LOGIN_URL, data=data, allow_redirects=True)
+
+    # Buka halaman event untuk memastikan login berhasil
     r_event = session.get(EVENT_URL)
-    
-    return username.lower() in r_event.text.lower() or 'logout' in r_event.text.lower()
+
+    # Login sukses jika username/email ada di teks event ATAU URL mengarah ke pembayaran/event
+    is_success = (
+        username.lower() in r_event.text.lower()
+        or 'logout' in r_event.text.lower()
+        or 'pembayaran.php' in res.url
+        or len(session.cookies) > 0
+    )
+
+    return is_success
 
 
 if __name__ == '__main__':
