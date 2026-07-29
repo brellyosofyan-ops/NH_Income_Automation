@@ -150,28 +150,41 @@ def check_claim(sess_html, is_claimed):
 
 
 def login(session, username, password):
+    # 1. Tambahkan header penyamaran penuh agar mirip browser asli
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://kageherostudio.com/payment/login.php',
+        'Origin': 'https://kageherostudio.com',
+        'Content-Type': 'application/x-www-form-urlencoded'
+    })
+
     data = {
         USER_NAME: username,
         PASS_NAME: password,
-        'txtfrom': '',
+        'txtfrom': '', 
     }
 
-    # Buka halaman login dulu untuk ambil CSRF / Cookie awal
+    # 2. Pancing cookie awal
     session.get('https://kageherostudio.com/payment/login.php')
 
-    # Kirim request POST login dengan mengizinkan redirect
+    # 3. Tembak login
     res = session.post(LOGIN_URL, data=data, allow_redirects=True)
 
-    # Buka halaman event untuk memastikan login berhasil
+    # 4. Cek hasil ke halaman event
     r_event = session.get(EVENT_URL)
 
-    # Login sukses jika username/email ada di teks event ATAU URL mengarah ke pembayaran/event
-    is_success = (
-        username.lower() in r_event.text.lower()
-        or 'logout' in r_event.text.lower()
-        or 'pembayaran.php' in res.url
-        or len(session.cookies) > 0
-    )
+    # Validasi ketat
+    is_success = username.lower() in r_event.text.lower() or 'logout' in r_event.text.lower()
+
+    # --- BLOK DEBUGGING (SADAP SERVER) ---
+    if not is_success:
+        print(f"\n--- DEBUG LOG: GAGAL LOGIN ---")
+        print(f"Status Code Server : {res.status_code}")
+        print(f"URL Tujuan Akhir   : {res.url}")
+        # Cetak 300 huruf pertama dari jawaban server untuk melihat error aslinya
+        print(f"Jawaban Asli Server:\n{res.text[:300]}")
+        print(f"------------------------------\n")
+    # -------------------------------------
 
     return is_success
 
