@@ -1,6 +1,7 @@
 name: Fast Claim
 
 on:
+  workflow_dispatch:
   push:
   schedule:
     - cron: "30 17,5 * * *" # 00:30 AM & 00:30 PM UTC+7 Each Day
