@@ -51,8 +51,7 @@ def main(data):
     )
     max_len = len(max_data)
 
-    # n_cores = os.cpu_count()
-    n_threads = len(data) + 1 # min(n_cores * 2, len(data)+1)
+    n_threads = len(data) + 1
     stop = []
     fails = 0
 
@@ -93,6 +92,11 @@ def user_claim(user):
     server = user.get('server')
 
     session = requests.Session()
+    # Tambah User-Agent standar browser biar request gak diblokir server
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    })
+    
     is_logged = login(session, username, password)
 
     assert is_logged, 'Wrong Login Credential'
@@ -151,9 +155,13 @@ def login(session, username, password):
         PASS_NAME: password,
     }
 
-    r = session.post(LOGIN_URL, data=data)
+    # Kirim data login ke server
+    session.post(LOGIN_URL, data=data)
 
-    return r.url.endswith('pembayaran.php')
+    # Validasi nyata: Buka halaman event & pastikan email/Logout terdeteksi di halaman
+    r_event = session.get(EVENT_URL)
+    
+    return username.lower() in r_event.text.lower() or 'logout' in r_event.text.lower()
 
 
 if __name__ == '__main__':
