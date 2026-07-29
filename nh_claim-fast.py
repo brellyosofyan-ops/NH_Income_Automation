@@ -153,12 +153,13 @@ def login(session, username, password):
     data = {
         USER_NAME: username,
         PASS_NAME: password,
+        'txtfrom': '',  # Parameter wajib yang diminta server Kagehero
     }
 
-    # Kirim data login ke server
+    # Kirim request POST ke server
     session.post(LOGIN_URL, data=data)
 
-    # Validasi nyata: Buka halaman event & pastikan email/Logout terdeteksi di halaman
+    # Cek apakah session berhasil masuk dengan membuka halaman event
     r_event = session.get(EVENT_URL)
     
     return username.lower() in r_event.text.lower() or 'logout' in r_event.text.lower()
