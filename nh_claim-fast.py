@@ -119,7 +119,7 @@ def user_claim(user):
 def claim(session, sess_html, server):
     reward = sess_html.select(REWARD_CLS)
 
-    if not reward:
+    if not reward or len(reward) <= 3:
         return False
 
     item_id = reward[3].get(REWARD_ID)
