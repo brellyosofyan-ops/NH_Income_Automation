@@ -119,11 +119,11 @@ def user_claim(user):
 def claim(session, sess_html, server):
     reward = sess_html.select(REWARD_CLS)
 
-    if not reward or len(reward) <= 3:
+    if not reward:
         return False
-
-    item_id = reward[3].get(REWARD_ID)
-    item_prod = reward[3].get(REWARD_PROD)
+    
+    item_id = reward[0].get(REWARD_ID)
+    item_prod = reward[0].get(REWARD_PROD)
 
     result = session.post(CLAIM_URL, data={
         ITEM_POST: item_id,
@@ -138,7 +138,6 @@ def claim(session, sess_html, server):
     assert 'invalid' not in data, 'Reward/Period Mismatch'
 
     return message == 'success'
-
 
 
 def check_claim(sess_html, is_claimed):
