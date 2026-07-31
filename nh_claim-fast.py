@@ -117,47 +117,28 @@ def user_claim(user):
 
 
 def claim(session, sess_html, server):
-    rewards = sess_html.select(REWARD_CLS)
+    reward = sess_html.select(REWARD_CLS)
 
-    if not rewards:
+    if not reward:
         return False
     
-    success = False
-    for reward in rewards:
-        item_id = reward.get(REWARD_ID)
-        item_prod = reward.get(REWARD_PROD)
+    item_id = reward[0].get(REWARD_ID)
+    item_prod = reward[0].get(REWARD_PROD)
 
-        print(f"Mencoba klaim -> item_id: {item_id}, item_prod: {item_prod}")
+    result = session.post(CLAIM_URL, data={
+        ITEM_POST: item_id,
+        PROD_POST: item_prod,
+        SRVR_POST: server,
+    }).json()
+    
+    message = result.get('message')
+    data = result.get('data')
 
-        result = session.post(CLAIM_URL, data={
-            ITEM_POST: item_id,
-            PROD_POST: item_prod,
-            SRVR_POST: server,
-        }).json()
-        
-        message = result.get('message')
-        data = result.get('data', '')
+    assert '[-102]' not in data, 'Wrong Server ID'
+    assert 'invalid' not in data, 'Reward/Period Mismatch'
 
-        # Validasi salah server ID
-        assert '[-102]' not in data, 'Wrong Server ID'
+    return message == 'success'
 
-        # Jika reward invalid atau period mismatch, lanjut ke indeks/reward berikutnya
-        if 'invalid' in str(data).lower() or 'not found' in str(data).lower():
-            print("-> Lewati (tidak valid / beda periode)")
-            continue
-
-        # Jika sudah pernah diklaim sebelumnya, JANGAN STOP, tapi lanjut cari hari berikutnya
-        if 'already' in str(data).lower() or 'claimed' in str(data).lower():
-            print("-> Lewati (sudah diklaim sebelumnya)")
-            continue
-
-        # Jika sukses diklaim hari ini
-        if message == 'success':
-            print("-> Berhasil diklaim!")
-            success = True
-            break
-
-    return success
 
 
 def check_claim(sess_html, is_claimed):
