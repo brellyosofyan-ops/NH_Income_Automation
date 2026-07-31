@@ -117,33 +117,47 @@ def user_claim(user):
 
 
 def claim(session, sess_html, server):
-    reward = sess_html.select(REWARD_CLS)
+    rewards = sess_html.select(REWARD_CLS)
 
-    if not reward:
-        print("DEBUG: Tidak ada elemen reward yang ditemukan di HTML!")
+    if not rewards:
         return False
     
-    item_id = reward[0].get(REWARD_ID)
-    item_prod = reward[0].get(REWARD_PROD)
-    
-    # Cetak data yang akan dikirim untuk pengecekan
-    print(f"DEBUG -> item_id: {item_id}, item_prod: {item_prod}")
+    success = False
+    for reward in rewards:
+        item_id = reward.get(REWARD_ID)
+        item_prod = reward.get(REWARD_PROD)
 
-    result = session.post(CLAIM_URL, data={
-        ITEM_POST: item_id,
-        PROD_POST: item_prod,
-        SRVR_POST: server,
-    }).json()
-    
-    message = result.get('message')
-    data = result.get('data')
-    
-    print(f"DEBUG -> respon server: {result}")
+        print(f"Mencoba klaim -> item_id: {item_id}, item_prod: {item_prod}")
 
-    assert '[-102]' not in data, 'Wrong Server ID'
-    assert 'invalid' not in data, 'Reward/Period Mismatch'
+        result = session.post(CLAIM_URL, data={
+            ITEM_POST: item_id,
+            PROD_POST: item_prod,
+            SRVR_POST: server,
+        }).json()
+        
+        message = result.get('message')
+        data = result.get('data', '')
 
-    return message == 'success'
+        # Validasi salah server ID
+        assert '[-102]' not in data, 'Wrong Server ID'
+
+        # Jika reward invalid atau period mismatch, lanjut ke indeks/reward berikutnya
+        if 'invalid' in str(data).lower() or 'not found' in str(data).lower():
+            print("-> Lewati (tidak valid / beda periode)")
+            continue
+
+        # Jika sudah pernah diklaim sebelumnya, JANGAN STOP, tapi lanjut cari hari berikutnya
+        if 'already' in str(data).lower() or 'claimed' in str(data).lower():
+            print("-> Lewati (sudah diklaim sebelumnya)")
+            continue
+
+        # Jika sukses diklaim hari ini
+        if message == 'success':
+            print("-> Berhasil diklaim!")
+            success = True
+            break
+
+    return success
 
 
 def check_claim(sess_html, is_claimed):
