@@ -122,11 +122,8 @@ def claim(session, sess_html, server):
     if not reward:
         return False
 
-    # Ambil index sesuai jumlah hari yang sudah diklaim (misal udah 3, berarti ambil index ke-3 yaitu hari ke-4)
-    n_claim = int(re.search(r'\d+', sess_html.select('h5')[0].text).group())
-    
-    item_id = reward[n_claim].get(REWARD_ID)
-    item_prod = reward[n_claim].get(REWARD_PROD)
+    item_id = reward[3].get(REWARD_ID)
+    item_prod = reward[3].get(REWARD_PROD)
 
     result = session.post(CLAIM_URL, data={
         ITEM_POST: item_id,
