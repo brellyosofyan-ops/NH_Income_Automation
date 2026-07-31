@@ -120,10 +120,14 @@ def claim(session, sess_html, server):
     reward = sess_html.select(REWARD_CLS)
 
     if not reward:
+        print("DEBUG: Tidak ada elemen reward yang ditemukan di HTML!")
         return False
     
     item_id = reward[0].get(REWARD_ID)
     item_prod = reward[0].get(REWARD_PROD)
+    
+    # Cetak data yang akan dikirim untuk pengecekan
+    print(f"DEBUG -> item_id: {item_id}, item_prod: {item_prod}")
 
     result = session.post(CLAIM_URL, data={
         ITEM_POST: item_id,
@@ -133,6 +137,8 @@ def claim(session, sess_html, server):
     
     message = result.get('message')
     data = result.get('data')
+    
+    print(f"DEBUG -> respon server: {result}")
 
     assert '[-102]' not in data, 'Wrong Server ID'
     assert 'invalid' not in data, 'Reward/Period Mismatch'
